@@ -220,7 +220,7 @@
 
       .player-body {
         grid-column: 1;
-        grid-row: 1 / -1;
+        grid-row: 1;
         align-self: start;
         min-width: 0;
       }
@@ -233,12 +233,12 @@
       }
 
       .player-card > .dot-row {
-        grid-column: 2;
+        grid-column: 1 / -1;
         grid-row: 2;
         justify-self: end;
-        align-self: start;
+        align-self: center;
         width: max-content;
-        max-width: min(56vw, 22rem);
+        max-width: 100%;
       }
 
       .player-name {
@@ -286,20 +286,9 @@
       .dot-row {
         display: flex;
         gap: 4px;
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         justify-content: flex-end;
-        overflow-x: auto;
         padding-bottom: 2px;
-        width: 100%;
-      }
-
-      .dot-row::-webkit-scrollbar {
-        height: 4px;
-      }
-
-      .dot-row::-webkit-scrollbar-thumb {
-        background: var(--color-border-secondary);
-        border-radius: 4px;
       }
 
       @media (max-width: 480px) {
@@ -308,26 +297,15 @@
           row-gap: 0.55rem;
         }
 
-        .player-body {
-          grid-column: 1;
-          grid-row: 1 / 2;
-        }
-
         .player-card > .badge {
-          grid-column: 2;
-          grid-row: 1;
           position: sticky;
           top: max(8px, env(safe-area-inset-top));
           z-index: 2;
         }
 
         .player-card > .dot-row {
-          grid-column: 1 / -1;
-          grid-row: 2;
           justify-content: flex-start;
-          justify-self: stretch;
-          width: 100%;
-          max-width: none;
+          justify-self: start;
         }
       }
 
