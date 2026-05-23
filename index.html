@@ -1016,6 +1016,25 @@
         return SESS_KEYS.filter((k) => p.sessions[k] === 'yes').length;
       }
 
+      function sessionDot(value, i) {
+        const v = value;
+        const label =
+          v === 'yes'
+            ? 'attended'
+            : v === 'no'
+              ? "signed up, didn't come"
+              : 'not signed up';
+        const fill = v === 'yes' ? '#1d9e75' : v === 'no' ? '#df4f4e' : '#e6eaf0';
+        const border = v === 'yes' || v === 'no' ? fill : '#d9dee6';
+
+        return `<span
+          class="dot"
+          title="${SESSIONS[i].date}: ${label}"
+          aria-label="${SESSIONS[i].date}: ${label}"
+          style="display:inline-block;width:9px;height:9px;min-width:9px;min-height:9px;border-radius:999px;background:${fill};border:1px solid ${border};box-sizing:border-box;flex:0 0 auto;"
+        ></span>`;
+      }
+
       function render() {
         const q = document.getElementById('search').value.toLowerCase();
         const sortMode = document.getElementById('sort-players').value;
@@ -1044,16 +1063,7 @@
             const [cls, label] = badgeMap[p.category];
             const dots = SESS_KEYS.map((k, i) => {
               const v = p.sessions[k];
-              const cls2 = v === 'yes' ? 'dot-yes' : v === 'no' ? 'dot-no' : 'dot-absent';
-              return `<div class="dot ${cls2}" title="${
-                SESSIONS[i].date
-              }: ${
-                v === 'yes'
-                  ? 'attended'
-                  : v === 'no'
-                    ? "signed up, didn't come"
-                    : 'not signed up'
-              }"></div>`;
+              return sessionDot(v, i);
             }).join('');
             const att = attendedCount(p);
             const sig = SESS_KEYS.filter((k) => p.sessions[k]).length;
