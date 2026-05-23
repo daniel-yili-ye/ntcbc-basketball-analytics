@@ -155,8 +155,21 @@
         background: var(--color-background-primary);
         color: var(--color-text-secondary);
         cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
         transition: background 0.15s ease, border-color 0.15s ease,
           color 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .tab-count {
+        font-weight: 650;
+        font-variant-numeric: tabular-nums;
+        opacity: 0.78;
+      }
+
+      .tab.active .tab-count {
+        opacity: 0.92;
       }
 
       .tab:hover {
@@ -276,18 +289,38 @@
 
       @media (max-width: 480px) {
         .player-card {
-          flex-direction: column;
-          align-items: stretch;
-          gap: 0.65rem;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          column-gap: 0.65rem;
+          row-gap: 0.55rem;
+          align-items: start;
         }
 
+        /* Flatten sidebar so dots can span full grid width */
         .player-side {
-          max-width: none;
-          width: 100%;
+          display: contents;
         }
 
-        .dot-row {
-          justify-content: flex-end;
+        .player-body {
+          grid-column: 1 / 2;
+          grid-row: 1 / 2;
+          padding-right: 0;
+        }
+
+        .player-card .badge {
+          grid-column: 2 / 3;
+          grid-row: 1 / 2;
+          justify-self: end;
+          align-self: start;
+          position: sticky;
+          top: max(8px, env(safe-area-inset-top));
+          z-index: 2;
+        }
+
+        .player-card .dot-row {
+          grid-column: 1 / -1;
+          grid-row: 2 / 3;
+          justify-content: flex-start;
         }
       }
 
@@ -331,13 +364,22 @@
         height: 8px;
       }
 
-      .search-wrap {
+      .directory-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 0.75rem 1rem;
         margin-bottom: 0.85rem;
       }
 
-      .search-wrap input {
-        width: 100%;
+      .directory-controls .field-search {
+        flex: 1 1 14rem;
         max-width: 22rem;
+        min-width: min(100%, 10rem);
+      }
+
+      .directory-controls input[type='search'] {
+        width: 100%;
         font-family: inherit;
         font-size: 0.88rem;
         padding: 0.55rem 0.85rem;
@@ -348,15 +390,57 @@
         transition: border-color 0.15s ease, box-shadow 0.15s ease;
       }
 
-      .search-wrap input::placeholder {
+      .directory-controls input[type='search']::placeholder {
         color: #9aa3af;
       }
 
-      .search-wrap input:hover {
+      .directory-controls input[type='search']:hover {
         border-color: var(--color-border-primary);
       }
 
-      .search-wrap input:focus {
+      .directory-controls input[type='search']:focus {
+        outline: none;
+        border-color: var(--chart-attended);
+        box-shadow: 0 0 0 3px rgba(43, 127, 212, 0.2);
+      }
+
+      .directory-controls .field-sort {
+        flex: 0 1 auto;
+        min-width: 11rem;
+      }
+
+      .directory-controls .field-sort label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--color-text-secondary);
+        margin-bottom: 0.3rem;
+      }
+
+      .directory-controls select {
+        width: 100%;
+        font-family: inherit;
+        font-size: 0.88rem;
+        padding: 0.52rem 2rem 0.52rem 0.85rem;
+        border-radius: var(--border-radius-md);
+        border: 1px solid var(--color-border-secondary);
+        background-color: var(--color-background-primary);
+        color: var(--color-text-primary);
+        cursor: pointer;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' viewBox='0 0 14 14'%3E%3Cpath stroke='%235c6370' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m3 5 4 4 4-4'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.65rem center;
+      }
+
+      .directory-controls select:hover {
+        border-color: var(--color-border-primary);
+      }
+
+      .directory-controls select:focus {
         outline: none;
         border-color: var(--chart-attended);
         box-shadow: 0 0 0 3px rgba(43, 127, 212, 0.2);
@@ -442,16 +526,21 @@
         </div>
 
         <p class="section-title">Player directory</p>
-        <div class="tabs">
-          <button type="button" class="tab active" onclick="setTab('all')">
-            All players
+        <div class="tabs" id="directory-tabs">
+          <button type="button" class="tab active" data-tab="all" onclick="setTab('all')">
+            All players <span class="tab-count"></span>
           </button>
-          <button type="button" class="tab" onclick="setTab('active')">
-            Active regulars
+          <button type="button" class="tab" data-tab="active" onclick="setTab('active')">
+            Active regulars <span class="tab-count"></span>
           </button>
-          <button type="button" class="tab" onclick="setTab('new')">Newcomers</button>
-          <button type="button" class="tab" onclick="setTab('faded')">
-            Stopped coming
+          <button type="button" class="tab" data-tab="new" onclick="setTab('new')">
+            Newcomers <span class="tab-count"></span>
+          </button>
+          <button type="button" class="tab" data-tab="faded" onclick="setTab('faded')">
+            Stopped coming <span class="tab-count"></span>
+          </button>
+          <button type="button" class="tab" data-tab="occasional" onclick="setTab('occasional')">
+            Occasional <span class="tab-count"></span>
           </button>
         </div>
         <div class="legend">
@@ -459,8 +548,20 @@
           <span><span class="dot dot-no"></span>Signed up, didn't come</span>
           <span><span class="dot dot-absent"></span>Not signed up</span>
         </div>
-        <div class="search-wrap">
-          <input type="search" id="search" placeholder="Search player…" oninput="render()" />
+        <div class="directory-controls">
+          <div class="field-search">
+            <label class="sr-only" for="search">Search players by name</label>
+            <input type="search" id="search" placeholder="Search player…" oninput="render()" />
+          </div>
+          <div class="field-sort">
+            <label for="sort-players">Sort by</label>
+            <select id="sort-players" onchange="render()">
+              <option value="name-asc">Name A–Z</option>
+              <option value="name-desc">Name Z–A</option>
+              <option value="attend-desc">Attendance (high → low)</option>
+              <option value="attend-asc">Attendance (low → high)</option>
+            </select>
+          </div>
         </div>
         <div class="player-list" id="grid"></div>
       </div>
@@ -909,25 +1010,57 @@
         },
       });
 
+      function directoryTabCount(kind) {
+        if (kind === 'all') return categorized.length;
+        return categorized.filter((p) => p.category === kind).length;
+      }
+
+      function syncDirectoryTabs() {
+        const labels = {
+          all: 'All players',
+          active: 'Active regulars',
+          new: 'Newcomers',
+          faded: 'Stopped coming',
+          occasional: 'Occasional',
+        };
+        document.querySelectorAll('.tab[data-tab]').forEach((btn) => {
+          const key = btn.dataset.tab;
+          const n = directoryTabCount(key);
+          const base = labels[key] || key;
+          btn.innerHTML = `${base} <span class="tab-count">(${n})</span>`;
+          const readable = n === 1 ? '1 player' : `${n} players`;
+          btn.setAttribute('aria-label', `${base}, ${readable}`);
+        });
+      }
+
       let currentTab = 'all';
       function setTab(tab) {
         currentTab = tab;
-        document.querySelectorAll('.tab').forEach((t) => {
-          const labels = { all: 'all players', active: 'active', new: 'newcomers', faded: 'stopped' };
-          t.classList.toggle(
-            'active',
-            t.textContent.toLowerCase().includes(labels[tab]),
-          );
+        document.querySelectorAll('.tab[data-tab]').forEach((t) => {
+          t.classList.toggle('active', t.dataset.tab === tab);
         });
         render();
       }
 
+      function attendedCount(p) {
+        return SESS_KEYS.filter((k) => p.sessions[k] === 'yes').length;
+      }
+
       function render() {
         const q = document.getElementById('search').value.toLowerCase();
+        const sortMode = document.getElementById('sort-players').value;
         let subset = categorized;
         if (currentTab !== 'all') subset = subset.filter((p) => p.category === currentTab);
         if (q) subset = subset.filter((p) => p.name.toLowerCase().includes(q));
-        subset = [...subset].sort((a, b) => a.name.localeCompare(b.name));
+        subset = [...subset].sort((a, b) => {
+          let cmp = 0;
+          if (sortMode === 'name-desc') cmp = b.name.localeCompare(a.name);
+          else if (sortMode === 'attend-desc') cmp = attendedCount(b) - attendedCount(a);
+          else if (sortMode === 'attend-asc') cmp = attendedCount(a) - attendedCount(b);
+          else cmp = a.name.localeCompare(b.name); /* name-asc default */
+          if (cmp !== 0) return cmp;
+          return a.name.localeCompare(b.name);
+        });
 
         const badgeMap = {
           new: ['badge-new', 'Newcomer'],
@@ -952,7 +1085,7 @@
                     : 'not signed up'
               }"></div>`;
             }).join('');
-            const att = SESS_KEYS.filter((k) => p.sessions[k] === 'yes').length;
+            const att = attendedCount(p);
             const sig = SESS_KEYS.filter((k) => p.sessions[k]).length;
             return `<div class="player-card">
       <div class="player-body">
@@ -968,6 +1101,7 @@
           .join('');
       }
 
+      syncDirectoryTabs();
       render();
     </script>
   </body>
