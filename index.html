@@ -196,10 +196,11 @@
       }
 
       .player-card {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-start;
-        gap: 0.5rem 1rem;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        column-gap: 1rem;
+        row-gap: 0.35rem;
+        align-items: start;
         background: var(--color-background-primary);
         border: 1px solid var(--color-border-tertiary);
         border-radius: var(--border-radius-md);
@@ -212,27 +213,41 @@
         box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
       }
 
-      .player-body {
-        flex: 1 1 60%;
+      .player-card > .player-name {
+        grid-column: 1;
+        grid-row: 1;
         min-width: 0;
       }
 
+      .player-card > .player-meta {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        min-width: 0;
+        padding-right: 1rem;
+      }
+
       .player-card > .badge {
-        flex: 0 0 auto;
-        margin-left: auto;
-        align-self: flex-start;
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: end;
+        align-self: start;
       }
 
       .player-card > .dot-row {
-        flex: 1 0 100%;
-        justify-content: flex-end;
+        grid-column: 2;
+        grid-row: 2;
+        justify-self: end;
+        align-self: center;
+        position: relative;
+        z-index: 1;
+        background: var(--color-background-primary);
+        padding-left: 0.5rem;
       }
 
       .player-name {
         font-size: 0.92rem;
         font-weight: 600;
         color: var(--color-text-primary);
-        margin-bottom: 0.2rem;
       }
 
       .player-meta {
@@ -272,15 +287,15 @@
 
       .dot-row {
         display: flex;
+        align-items: center;
         gap: 4px;
         flex-wrap: wrap;
-        justify-content: flex-end;
-        padding-bottom: 2px;
       }
 
       @media (max-width: 480px) {
         .player-card {
-          gap: 0.55rem 0.65rem;
+          row-gap: 0.55rem;
+          column-gap: 0.65rem;
         }
 
         .player-card > .badge {
@@ -289,8 +304,19 @@
           z-index: 2;
         }
 
+        .player-card > .player-meta {
+          grid-column: 1 / -1;
+          grid-row: 2;
+          padding-right: 0;
+        }
+
         .player-card > .dot-row {
+          grid-column: 1 / -1;
+          grid-row: 3;
+          justify-self: start;
           justify-content: flex-start;
+          padding-left: 0;
+          background: transparent;
         }
       }
 
@@ -542,10 +568,10 @@
           <div class="field-sort">
             <label for="sort-players">Sort by</label>
             <select id="sort-players" onchange="render()">
+              <option value="attend-desc" selected>Attendance (high → low)</option>
+              <option value="attend-asc">Attendance (low → high)</option>
               <option value="name-asc">Name A–Z</option>
               <option value="name-desc">Name Z–A</option>
-              <option value="attend-desc">Attendance (high → low)</option>
-              <option value="attend-asc">Attendance (low → high)</option>
             </select>
           </div>
         </div>
@@ -1040,10 +1066,8 @@
             const att = attendedCount(p);
             const sig = SESS_KEYS.filter((k) => p.sessions[k]).length;
             return `<div class="player-card">
-      <div class="player-body">
-        <div class="player-name">${p.name}</div>
-        <div class="player-meta">${att} attended · ${sig} signed up · ${SESS_KEYS.length} sessions</div>
-      </div>
+      <div class="player-name">${p.name}</div>
+      <div class="player-meta">${att} attended · ${sig} signed up · ${SESS_KEYS.length} sessions</div>
       <div class="badge ${cls}">${label}</div>
       <div class="dot-row">${dots}</div>
     </div>`;
