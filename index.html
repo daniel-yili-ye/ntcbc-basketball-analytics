@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Basketball attendance · NTCBC</title>
+    <style>
+      :root {
+        --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell,
+          "Helvetica Neue", sans-serif;
+        --color-text-primary: #16181d;
+        --color-text-secondary: #5c6370;
+        --color-background-page: #e8ecf2;
+        --color-background-primary: #ffffff;
+        --color-background-secondary: #f0f3f7;
+        --color-background-elevated: #ffffff;
+        --color-border-primary: #c5cad3;
+        --color-border-secondary: #d9dee6;
+        --color-border-tertiary: #e6eaf0;
+        --border-radius-md: 12px;
+        --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.06),
+          0 8px 24px rgba(15, 23, 42, 0.06);
+        --chart-attended: #2b7fd4;
+        --chart-noshow: #b8d7f5;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-sans);
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--color-text-primary);
+        background: linear-gradient(
+          160deg,
+          var(--color-background-page) 0%,
+          #dde3eb 55%,
+          #d4dae4 100%
+        );
+        min-height: 100vh;
+        padding: clamp(1.25rem, 4vw, 2.25rem);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .page-wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+
+      .page-header {
+        margin-bottom: clamp(1.25rem, 3vw, 2rem);
+      }
+
+      .page-title {
+        font-size: clamp(1.35rem, 2.8vw, 1.85rem);
+        font-weight: 650;
+        letter-spacing: -0.02em;
+        color: var(--color-text-primary);
+      }
+
+      .page-subtitle {
+        margin-top: 0.35rem;
+        font-size: 0.95rem;
+        color: var(--color-text-secondary);
+        max-width: 42rem;
+      }
+
+      .dash {
+        background: var(--color-background-elevated);
+        border-radius: calc(var(--border-radius-md) + 6px);
+        box-shadow: var(--shadow-soft);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        padding: clamp(1.25rem, 3vw, 2rem);
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-bottom: clamp(1.25rem, 3vw, 1.85rem);
+      }
+
+      @media (max-width: 720px) {
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      .metric {
+        background: var(--color-background-secondary);
+        border-radius: var(--border-radius-md);
+        padding: 1rem 1.1rem;
+        border: 1px solid var(--color-border-tertiary);
+      }
+
+      .metric-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--color-text-secondary);
+        margin-bottom: 0.4rem;
+      }
+
+      .metric-value {
+        font-size: clamp(1.35rem, 3vw, 1.65rem);
+        font-weight: 620;
+        letter-spacing: -0.03em;
+        color: var(--color-text-primary);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .section-title {
+        font-size: 0.72rem;
+        font-weight: 650;
+        color: var(--color-text-secondary);
+        margin-bottom: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .chart-card {
+        margin-bottom: clamp(1.25rem, 3vw, 2rem);
+        padding-bottom: 0.25rem;
+        border-bottom: 1px solid var(--color-border-tertiary);
+      }
+
+      .chart-area {
+        position: relative;
+        width: 100%;
+        height: 220px;
+        margin-bottom: 0.5rem;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 0.45rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .tab {
+        font-family: inherit;
+        font-size: 0.82rem;
+        font-weight: 500;
+        padding: 0.45rem 0.95rem;
+        border-radius: 999px;
+        border: 1px solid var(--color-border-secondary);
+        background: var(--color-background-primary);
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease,
+          color 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .tab:hover {
+        border-color: var(--color-border-primary);
+        color: var(--color-text-primary);
+      }
+
+      .tab:focus-visible {
+        outline: 2px solid var(--chart-attended);
+        outline-offset: 2px;
+      }
+
+      .tab.active {
+        background: var(--color-text-primary);
+        color: #fafbfc;
+        border-color: var(--color-text-primary);
+        box-shadow: 0 4px 12px rgba(22, 24, 29, 0.15);
+      }
+
+      .player-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+      }
+
+      .player-card {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        background: var(--color-background-primary);
+        border: 1px solid var(--color-border-tertiary);
+        border-radius: var(--border-radius-md);
+        padding: 0.75rem 1rem;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .player-card:hover {
+        border-color: var(--color-border-secondary);
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+      }
+
+      .player-body {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .player-side {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.45rem;
+        flex-shrink: 0;
+        max-width: min(56vw, 22rem);
+      }
+
+      .player-name {
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        margin-bottom: 0.2rem;
+      }
+
+      .player-meta {
+        font-size: 0.76rem;
+        color: var(--color-text-secondary);
+      }
+
+      .badge {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        flex-shrink: 0;
+      }
+
+      .badge-new {
+        background: #dcf5eb;
+        color: #0b5c47;
+      }
+
+      .badge-faded {
+        background: #faeae4;
+        color: #8a3d24;
+      }
+
+      .badge-active {
+        background: #e5f0fb;
+        color: #1a5fa3;
+      }
+
+      .badge-occasional {
+        background: #f1eee6;
+        color: #5a5852;
+      }
+
+      .dot-row {
+        display: flex;
+        gap: 4px;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        width: 100%;
+      }
+
+      .dot-row::-webkit-scrollbar {
+        height: 4px;
+      }
+
+      .dot-row::-webkit-scrollbar-thumb {
+        background: var(--color-border-secondary);
+        border-radius: 4px;
+      }
+
+      @media (max-width: 480px) {
+        .player-card {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0.65rem;
+        }
+
+        .player-side {
+          max-width: none;
+          width: 100%;
+        }
+
+        .dot-row {
+          justify-content: flex-end;
+        }
+      }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .dot-yes {
+        background: #1d9e75;
+      }
+
+      .dot-no {
+        background: #df4f4e;
+      }
+
+      .dot-absent {
+        background: var(--color-border-tertiary);
+        border: 1px solid var(--color-border-secondary);
+      }
+
+      .legend {
+        display: flex;
+        gap: 1.1rem;
+        font-size: 0.78rem;
+        color: var(--color-text-secondary);
+        margin-bottom: 0.85rem;
+        flex-wrap: wrap;
+      }
+
+      .legend span {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .legend .dot {
+        width: 8px;
+        height: 8px;
+      }
+
+      .search-wrap {
+        margin-bottom: 0.85rem;
+      }
+
+      .search-wrap input {
+        width: 100%;
+        max-width: 22rem;
+        font-family: inherit;
+        font-size: 0.88rem;
+        padding: 0.55rem 0.85rem;
+        border-radius: var(--border-radius-md);
+        border: 1px solid var(--color-border-secondary);
+        background: var(--color-background-primary);
+        color: var(--color-text-primary);
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .search-wrap input::placeholder {
+        color: #9aa3af;
+      }
+
+      .search-wrap input:hover {
+        border-color: var(--color-border-primary);
+      }
+
+      .search-wrap input:focus {
+        outline: none;
+        border-color: var(--chart-attended);
+        box-shadow: 0 0 0 3px rgba(43, 127, 212, 0.2);
+      }
+
+      .chart-legend {
+        display: flex;
+        gap: 1.25rem;
+        font-size: 0.78rem;
+        color: var(--color-text-secondary);
+        margin-bottom: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .chart-legend span {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+
+      .legend-sq {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+
+      .footer-note {
+        margin-top: clamp(1.25rem, 3vw, 2rem);
+        font-size: 0.76rem;
+        color: var(--color-text-secondary);
+        text-align: center;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-wrap">
+      <header class="page-header">
+        <h1 class="page-title">🏀 NTCBC Basketball · Attendance Analytics Report</h1>
+        <p class="page-subtitle">
+          Sign-ups and attendance across sessions — Feb 13, 2026 to May 25, 2026.
+        </p>
+      </header>
+
+      <div class="dash">
+        <h2 class="sr-only">
+          Church basketball attendance tracker, Feb–May 2026
+        </h2>
+
+        <div class="metrics" id="metrics"></div>
+
+        <div class="chart-card">
+          <p class="section-title">Signups vs actual attendance per session</p>
+          <div class="chart-legend">
+            <span>
+              <span class="legend-sq" style="background: var(--chart-attended)"></span>
+              Attended
+            </span>
+            <span>
+              <span class="legend-sq" style="background: var(--chart-noshow)"></span>
+              Signed up, didn't come
+            </span>
+          </div>
+          <div class="chart-area">
+            <canvas
+              id="attendChart"
+              role="img"
+              aria-label="Stacked bar chart of basketball signups vs attendance per session, Feb to May 2026"
+            ></canvas>
+          </div>
+        </div>
+
+        <p class="section-title">Player directory</p>
+        <div class="tabs">
+          <button type="button" class="tab active" onclick="setTab('all')">
+            All players
+          </button>
+          <button type="button" class="tab" onclick="setTab('active')">
+            Active regulars
+          </button>
+          <button type="button" class="tab" onclick="setTab('new')">Newcomers</button>
+          <button type="button" class="tab" onclick="setTab('faded')">
+            Stopped coming
+          </button>
+        </div>
+        <div class="legend">
+          <span><span class="dot dot-yes"></span>Attended</span>
+          <span><span class="dot dot-no"></span>Signed up, didn't come</span>
+          <span><span class="dot dot-absent"></span>Not signed up</span>
+        </div>
+        <div class="search-wrap">
+          <input type="search" id="search" placeholder="Search player…" oninput="render()" />
+        </div>
+        <div class="player-list" id="grid"></div>
+      </div>
+
+      <p class="footer-note">
+        Offline snapshot — Chart.js loads from CDN for the chart only.
+      </p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <script>
+      const SESSIONS = [
+        { date: 'Feb 16', key: 'feb16' },
+        { date: 'Feb 23', key: 'feb23' },
+        { date: 'Mar 2', key: 'mar2' },
+        { date: 'Mar 9', key: 'mar9' },
+        { date: 'Mar 16', key: 'mar16' },
+        { date: 'Mar 23', key: 'mar23' },
+        { date: 'Apr 6', key: 'apr6' },
+        { date: 'Apr 13', key: 'apr13' },
+        { date: 'Apr 20', key: 'apr20' },
+        { date: 'Apr 27', key: 'apr27' },
+        { date: 'May 4', key: 'may4' },
+        { date: 'May 11', key: 'may11' },
+        { date: 'May 18', key: 'may18' },
+        { date: 'May 25', key: 'may25' },
+      ];
+      const SESS_KEYS = SESSIONS.map((s) => s.key);
+
+      const IDENTITY = {
+        'sharingan246@gmail.com': ['anthonypwan@gmail.com', 'Anthony Wan'],
+        'anthonypwan@gmail.com': ['anthonypwan@gmail.com', 'Anthony Wan'],
+        'benedictwong1997@gmail.com': ['benedictlwong@gmail.com', 'Benedict Wong'],
+        'benedictlwong@gmail.com': ['benedictlwong@gmail.com', 'Benedict Wong'],
+        'christopherta7@gmail.com': ['christopherta32@gmail.com', 'Christopher Ta'],
+        'christopherta32@gmail.com': ['christopherta32@gmail.com', 'Christopher Ta'],
+        'matcw01@gmail.com': ['matcw01@gmail.com', 'Matthew Wong'],
+        'juning.l1@gmail.com': ['jay.mmg6@gmail.com', 'Janice Li'],
+        'jay.mmg6@gmail.com': ['jay.mmg6@gmail.com', 'Janice Li'],
+        'ngtimothy0318@gmail.com': ['ngtimothy0318@gmail.com', 'Timothy Ng'],
+      };
+
+      function canonical(email, name) {
+        const e = email.toLowerCase();
+        if (IDENTITY[e]) return IDENTITY[e];
+        return [
+          e,
+          name.trim().replace(/\b\w/g, (c) => c.toUpperCase()),
+        ];
+      }
+
+      const RAW = {
+        feb16: [
+          { email: 'phoebechow63@gmail.com', name: 'Phoebe Chow', a: 'Yes' },
+          { email: 'philip.trinh@ntcbc.ca', name: 'Philip Trinh', a: 'Yes' },
+          { email: 'matcw01@gmail.com', name: 'Matthew Wong', a: 'Yes' },
+          { email: 'jzwong9@gmail.com', name: 'James Wong', a: 'Yes' },
+          { email: 'brandonk2cho@gmail.com', name: 'Brandon Cho', a: 'Yes' },
+          { email: 'choganhero@gmail.com', name: 'Daniel Ye', a: 'No' },
+          { email: 'advaith.sriram@gmail.com', name: 'Advaith Sriram', a: 'Yes' },
+          { email: 'jessicaho9229@gmail.com', name: 'Jessica Ho', a: 'No' },
+          { email: 'lussiermonique23@gmail.com', name: 'Monique Lussier', a: 'Yes' },
+          { email: 'starfoxxkemuel@gmail.com', name: 'Kemuel Omero', a: 'Yes' },
+          { email: 'tedchaucontact@gmail.com', name: 'Teddie Chau', a: 'Yes' },
+          { email: 'ksz.leung@gmail.com', name: 'Kevin Leung', a: 'Yes' },
+          { email: 'samuelcyeung@gmail.com', name: 'Samuel Yeung', a: 'Yes' },
+          { email: 'anjieli1017@gmail.com', name: 'Anjie Li', a: 'Yes' },
+          { email: 'kelvin.s.lei@gmail.com', name: 'Kelvin Lei', a: 'Yes' },
+          { email: 'kahyuen229@gmail.com', name: 'Hugo Yuen', a: 'Yes' },
+          { email: 'chantomm535@gmail.com', name: 'Clancy Lam', a: 'Yes' },
+          { email: 'steve335026175@gmail.com', name: 'Steven Wang', a: 'Yes' },
+        ],
+        feb23: [
+          { email: 'phoebechow63@gmail.com', name: 'Phoebe Chow', a: 'Yes' },
+          { email: 'brandonk2cho@gmail.com', name: 'Brandon Cho', a: 'Yes' },
+          { email: 'choganhero@gmail.com', name: 'Daniel Ye', a: 'No' },
+          { email: 'eyeung1996@gmail.com', name: 'Eugenia Yeung', a: 'Yes' },
+        ],
+        mar2: [
+          { email: 'phoebechow63@gmail.com', name: 'Phoebe Chow', a: 'Yes' },
+          { email: 'fumanchuninja@gmail.com', name: 'Liam Sy', a: 'Yes' },
+          { email: 'philip.trinh@ntcbc.ca', name: 'Philip Trinh', a: 'Yes' },
+          { email: 'jessicaho9229@gmail.com', name: 'Jessica Ho', a: 'Yes' },
+          { email: 'lussiermonique23@gmail.com', name: 'Monique Lussier', a: 'Yes' },
+          { email: 'samuelcyeung@gmail.com', name: 'Samuel Yeung', a: 'No' },
+          { email: 'bybchen8@gmail.com', name: 'Bryan Chen', a: 'No' },
+          { email: 'brandonk2cho@gmail.com', name: 'Brandon Cho', a: 'Yes' },
+          { email: 'johnmtiamzon@gmail.com', name: 'John Tiamzon', a: 'Yes' },
+          { email: 'starfoxxkemuel@gmail.com', name: 'Kemuel Omero', a: 'Yes' },
+          { email: 'christopherta7@gmail.com', name: 'Christopher Ta', a: 'Yes' },
+          { email: 'chantomm535@gmail.com', name: 'Clancy Lam', a: 'No' },
+          { email: 'matcw01@gmail.com', name: 'Matthew Wong', a: 'Yes' },
+          { email: 'advaith.sriram@gmail.com', name: 'Advaith Sriram', a: 'Yes' },
+          { email: 'imvincenovesteras@gmail.com', name: 'Vince Novesteras', a: 'Yes' },
+          { email: 'phyllisyiu@gmail.com', name: 'Phyllis Yiu', a: 'Yes' },
+          { email: 'benedictwong1997@gmail.com', name: 'Benedict Wong', a: 'Yes' },
+          { email: 'li.dawson98@gmail.com', name: 'Dawson Li', a: 'Yes' },
+          { email: 'lpomero994@gmail.com', name: 'Larry Omero', a: 'Yes' },
+          { email: 'steve335026175@gmail.com', name: 'Steven Wang', a: 'Yes' },
+          { email: 'dawang.zhang24@gmail.com', name: 'Dawang Zhang', a: 'Yes' },
+          { email: 'tedchaucontact@gmail.com', name: 'Teddie Chau', a: 'Yes' },
+        ],
+        mar9: [
+          { email: 'tedchaucontact@gmail.com', name: 'Teddie Chau', a: 'Yes' },
+          { email: 'brandonk2cho@gmail.com', name: 'Brandon Cho', a: 'Yes' },
+          { email: 'stephen.tan1997@gmail.com', name: 'Stephen Tan', a: 'Yes' },
+          { email: 'hanvidlee@gmail.com', name: 'Hanvid Lee', a: 'Yes' },
+          { email: 'phoebechow63@gmail.com', name: 'Phoebe Chow', a: 'Yes' },
+          { email: 'philip.trinh@ntcbc.ca', name: 'Philip Trinh', a: 'Yes' },
+          { email: 'choganhero@gmail.com', name: 'Daniel Ye', a: 'Yes' },
+          { email: 'christopherta7@gmail.com', name: 'Christopher Ta', a: 'Yes' },
+          { email: 'jacoblai1603@gmail.com', name: 'Jacob Lai', a: 'Yes' },
+          { email: 'kelvin.chen@ntcbc.ca', name: 'Kelvin Chen', a: 'Yes' },
+          { email: 'lpomero994@gmail.com', name: 'Larry Omero', a: 'Yes' },
+          { email: 'anthonypwan@gmail.com', name: 'Anthony Wan', a: 'Yes' },
+          { email: 'starfoxxkemuel@gmail.com', name: 'Kemuel Omero', a: 'Yes' },
+          { email: 'advaith.sriram@gmail.com', name: 'Advaith Sriram', a: 'Yes' },
+          { email: 'chantomm535@gmail.com', name: 'Clancy Lam', a: 'Yes' },
+          { email: 'lussiermonique23@gmail.com', name: 'Monique Lussier', a: 'No' },
+          { email: 'imvincenovesteras@gmail.com', name: 'Vince Novesteras', a: 'Yes' },
+          { email: 'alinachoi2005@gmail.com', name: 'Alina Choi', a: 'Yes' },
+          { email: 'micah.tamy@gmail.com', name: 'Micah Tam', a: 'No' },
+          { email: 'caseywoobananas@gmail.com', name: 'Casey Woo', a: 'Yes' },
+          { email: 'ngtimothy0318@gmail.com', name: 'Timothy Ng', a: 'No' },
+        ],
+        mar16: [
+          { email: 'jacoblai1603@gmail.com', name: 'Jacob Lai', a: 'Yes' },
+          { email: 'philip.trinh@ntcbc.ca', name: 'Philip Trinh', a: 'No' },
+          { email: 'choganhero@gmail.com', name: 'Daniel Ye', a: 'Yes' },
+          { email: 'phoebechow63@gmail.com', name: 'Phoebe Chow', a: 'No' },
+          { email: 'brandonk2cho@gmail.com', name: 'Brandon Cho', a: 'Yes' },
+          { email: 'tedchaucontact@gmail.com', name: 'Teddie Chau', a: 'No' },
+          { email: 'samuelcyeung@gmail.com', name: 'Samuel Yeung', a: 'No' },
+          { email: 'hanvidlee@gmail.com', name: 'Hanvid Lee', a: 'No' },
+          { email: 'stephen.tan1997@gmail.com', name: 'Stephen Tan', a: 'No' },
+          { email: 'johnmtiamzon@gmail.com', name: 'John Tiamzon', a: 'Yes' },
+          { email: 'starfoxxkemuel@gmail.com', name: 'Kemuel Omero', a: 'Yes' },
+          { email: 'jessicaho9229@gmail.com', name: 'Jessica Ho', a: 'No' },
+          { email: 'lussiermonique23@gmail.com', name: 'Monique Lussier', a: 'No' },
+          { email: 'lpomero994@gmail.com', name: 'Larry Omero', a: 'Yes' },
+          { email: 'christopherta32@gmail.com', name: 'Christopher Ta', a: 'Yes' },
+          { email: 'advaith.sriram@gmail.com', name: 'Advaith Sriram', a: 'Yes' },
+          { email: 'matcw01@gmail.com', name: 'Matthew Wong', a: 'No' },
+          { email: 'fumanchuninja@gmail.com', name: 'Liam Sy', a: 'Yes' },
+          { email: 'chantomm535@gmail.com', name: 'Clancy Lam', a: 'Yes' },
+        ],
+        mar23: [
+          { email: 'philip.trinh@ntcbc.ca', name: 'Philip Trinh', a: 'Yes' },
+          { email: 'jacoblai1603@gmail.com', name: 'Jacob Lai', a: 'Yes' },
+          { email: 'brandonk2cho@gmail.com', name: 'Brandon Cho', a: 'Yes' },
+          { email: 'choganhero@gmail.com', name: 'Daniel Ye', a: 'Yes' },
+          { email: 'alexchai777@gmail.com', name: 'Alex Chai', a: 'No' },
+          { email: 'christopherta32@gmail.com', name: 'Christopher Ta', a: 'Yes' },
+          { email: 'dawang.zhang24@gmail.com', name: 'Dawang Zhang', a: 'Yes' },
+          { email: 'phoebechow63@gmail.com', name: 'Phoebe Chow', a: 'No' },
+          { email: 'tedchaucontact@gmail.com', name: 'Teddie Chau', a: 'Yes' },
+          { email: 'advaith.sriram@gmail.com', name: 'Advaith Sriram', a: 'Yes' },
+          { email: 'fumanchuninja@gmail.com', name: 'Liam Sy', a: 'Yes' },
+          { email: 'samuelcyeung@gmail.com', name: 'Samuel Yeung', a: 'Yes' },
+          { email: 'starfoxxkemuel@gmail.com', name: 'Kemuel Omero', a: 'Yes' },
+          { email: 'steve335026175@gmail.com', name: 'Steven Wang', a: 'Yes' },
+          { email: 'lpomero994@gmail.com', name: 'Larry Omero', a: 'Yes' },
+          { email: 'jessicaho9229@gmail.com', name: 'Jessica Ho', a: 'No' },
+          { email: 'lussiermonique23@gmail.com', name: 'Monique Lussier', a: 'Yes' },
+          { email: 'benedictwong1997@gmail.com', name: 'Benedict Wong', a: 'No' },
+          { email: 'sharingan246@gmail.com', name: 'Anthony Wan', a: 'Yes' },
+          { email: 'chantomm535@gmail.com', name: 'Clancy Lam', a: 'No' },
+          { email: 'johnmtiamzon@gmail.com', name: 'John Tiamzon', a: 'No' },
+          { email: 'ngtimothy0318@gmail.com', name: 'Timothy Ng', a: 'Yes' },
+          { email: 'jnwong116@gmail.com', name: 'Jordan Wong', a: 'Yes' },
+          { email: 'gnafniloc@gmail.com', name: 'Colin Fang', a: 'Yes' },
+          { email: 'shanenothsieh@gmail.com', name: 'Shane H', a: 'Yes' },
+        ],
+        apr6: [
+          { email: 'xmlu2114@gmail.com', name: 'Lucas Lu', a: 'Yes' },
+          { email: 'phoebechow63@gmail.com', name: 'Phoebe Chow', a: 'Yes' },
+          { email: 'tedchaucontact@gmail.com', name: 'Teddie Chau', a: 'No' },
+          { email: 'samuelcyeung@gmail.com', name: 'Samuel Yeung', a: 'Yes' },
+          { email: 'choganhero@gmail.com', name: 'Daniel Ye', a: 'Yes' },
+          { email: 'philip.trinh@ntcbc.ca', name: 'Philip Trinh', a: 'Yes' },
+          { email: 'brandonk2cho@gmail.com', name: 'Brandon Cho', a: 'Yes' },
+          { email: 'lussiermonique23@gmail.com', name: 'Monique Lussier', a: 'Yes' },
+          { email: 'juning.l1@gmail.com', name: 'Janice Li', a: 'Yes' },
+          { email: 'fumanchuninja@gmail.com', name: 'Liam Sy', a: 'Yes' },
+          { email: 'christopherta32@gmail.com', name: 'Christopher Ta', a: 'Yes' },
+          { email: 'starfoxxkemuel@gmail.com', name: 'Kemuel Omero', a: 'Yes' },
+          { email: 'matcw01@gmail.com', name: 'Matthew Wong', a: 'No' },
+          { email: 'lpomero994@gmail.com', name: 'Larry Omero', a: 'Yes' },
+          { email: 'katandxanderj@gmail.com', name: 'Katrina Jung', a: 'No' },
+          { email: 'benedictlwong@gmail.com', name: 'Benedict Wong', a: 'No' },
+          { email: 'chantomm535@gmail.com', name: 'Clancy Lam', a: 'Yes' },
+          { email: 'joshuazhang231@gmail.com', name: 'Joshua Zhang', a: 'Yes' },
+          { email: 'kelvin.chen@ntcbc.ca', name: 'Kelvin Chen', a: 'Yes' },
+          { email: 'stephen.tan1997@gmail.com', name: 'Stephen Tan', a: 'Yes' },
+          { email: 'johnmtiamzon@gmail.com', name: 'John Tiamzon', a: 'Yes' },
+          { email: 'bybchen8@gmail.com', name: 'Bryan Chen', a: 'Yes' },
+          { email: 'ngtimothy0318@gmail.com', name: 'Timothy Ng', a: 'Yes' },
+          { email: 'gnafniloc@gmail.com', name: 'Colin Fang', a: 'Yes' },
+        ],
+        apr13: [
+          { email: 'xmlu2114@gmail.com', name: 'Lucas Lu', a: 'Yes' },
+          { email: 'phoebechow63@gmail.com', name: 'Phoebe Chow', a: 'Yes' },
+          { email: 'brandonk2cho@gmail.com', name: 'Brandon Cho', a: 'Yes' },
+          { email: 'philip.trinh@ntcbc.ca', name: 'Philip Trinh', a: 'Yes' },
+          { email: 'tererai05@gmail.com', name: 'Tererai Madzinga', a: 'Yes' },
+          { email: 'fumanchuninja@gmail.com', name: 'Liam Sy', a: 'Yes' },
+          { email: 'johnmtiamzon@gmail.com', name: 'John Tiamzon', a: 'Yes' },
+          { email: 'choganhero@gmail.com', name: 'Daniel Ye', a: 'No' },
+          { email: 'advaith.sriram@gmail.com', name: 'Advaith Sriram', a: 'No' },
+          { email: 'lussiermonique23@gmail.com', name: 'Monique Lussier', a: 'Yes' },
+          { email: 'starfoxxkemuel@gmail.com', name: 'Kemuel Omero', a: 'Yes' },
+          { email: 'matcw01@gmail.com', name: 'Matthew Wong', a: 'Yes' },
+          { email: 'chantomm535@gmail.com', name: 'Clancy Lam', a: 'Yes' },
+          { email: 'lpomero994@gmail.com', name: 'Larry Omero', a: 'Yes' },
+          { email: 'christopherta32@gmail.com', name: 'Christopher Ta', a: 'Yes' },
+          { email: 'samuelcyeung@gmail.com', name: 'Samuel Yeung', a: 'Yes' },
+          { email: 'imvincenovesteras@gmail.com', name: 'Vince Novesteras', a: 'Yes' },
+          { email: 'ngtimothy0318@gmail.com', name: 'Timothy Ng', a: 'No' },
+          { email: 'isaacwong831@gmail.com', name: 'Isaac Wong', a: 'Yes' },
+          { email: 'jasonl0629@gmail.com', name: 'Jason Liu', a: 'No' },
+          { email: 'gnafniloc@gmail.com', name: 'Colin Fang', a: 'Yes' },
+        ],
+        apr20: [
+          { email: 'fumanchuninja@gmail.com', name: 'Liam Sy', a: 'Yes' },
+          { email: 'jacoblai1603@gmail.com', name: 'Jacob Lai', a: 'Yes' },
+          { email: 'philip.trinh@ntcbc.ca', name: 'Philip Trinh', a: 'Yes' },
+          { email: 'xmlu2114@gmail.com', name: 'Lucas Lu', a: 'Yes' },
+          { email: 'daniel.ng.94@gmail.com', name: 'Daniel Ng', a: 'Yes' },
+          { email: 'clement.shum128@gmail.com', name: 'Clement Shum', a: 'Yes' },
+          { email: 'phoebechow63@gmail.com', name: 'Phoebe Chow', a: 'Yes' },
+          { email: 'lamlam725725@gmail.com', name: 'Liam Lam', a: 'Yes' },
+          { email: 'lussiermonique23@gmail.com', name: 'Monique Lussier', a: 'Yes' },
+          { email: 'maandreasma@gmail.com', name: 'Andreas Ma', a: 'Yes' },
+          { email: 'samuelcyeung@gmail.com', name: 'Samuel Yeung', a: 'Yes' },
+          { email: 'brianmaytc@gmail.com', name: 'Brian Ma', a: 'Yes' },
+          { email: 'chantomm535@gmail.com', name: 'Clancy Lam', a: 'Yes' },
+          { email: 'choganhero@gmail.com', name: 'Daniel Ye', a: 'Yes' },
+          { email: 'christopherta32@gmail.com', name: 'Christopher Ta', a: 'Yes' },
+        ],
+        apr27: [
+          { email: 'brandonk2cho@gmail.com', name: 'Brandon Cho', a: 'Yes' },
+          { email: 'philip.trinh@ntcbc.ca', name: 'Philip Trinh', a: 'Yes' },
+          { email: 'phoebechow63@gmail.com', name: 'Phoebe Chow', a: 'Yes' },
+          { email: 'jacoblai1603@gmail.com', name: 'Jacob Lai', a: 'Yes' },
+          { email: 'lamlam725725@gmail.com', name: 'Liam Lam', a: 'Yes' },
+          { email: 'tedchaucontact@gmail.com', name: 'Teddie Chau', a: 'Yes' },
+          { email: 'clement.shum128@gmail.com', name: 'Clement Shum', a: 'No' },
+          { email: 'daniel.ng.94@gmail.com', name: 'Daniel Ng', a: 'Yes' },
+          { email: 'xmlu2114@gmail.com', name: 'Lucas Lu', a: 'Yes' },
+          { email: 'advaith.sriram@gmail.com', name: 'Advaith Sriram', a: 'Yes' },
+          { email: 'brianmaytc@gmail.com', name: 'Brian Ma', a: 'Yes' },
+          { email: 'rubyt636@gmail.com', name: 'Ruby Tse', a: 'No' },
+          { email: 'johnmtiamzon@gmail.com', name: 'John Tiamzon', a: 'Yes' },
+          { email: 'starfoxxkemuel@gmail.com', name: 'Kemuel Omero', a: 'Yes' },
+          { email: 'chantomm535@gmail.com', name: 'Clancy Lam', a: 'Yes' },
+          { email: 'fumanchuninja@gmail.com', name: 'Liam Sy', a: 'Yes' },
+          { email: 'choganhero@gmail.com', name: 'Daniel Ye', a: 'Yes' },
+          { email: 'lussiermonique23@gmail.com', name: 'Monique Lussier', a: 'Yes' },
+          { email: 'samuelcyeung@gmail.com', name: 'Samuel Yeung', a: 'No' },
+          { email: 'lpomero994@gmail.com', name: 'Larry Omero', a: 'Yes' },
+          { email: 'matcw01@gmail.com', name: 'Matthew Wong', a: 'Yes' },
+          { email: 'jasonl0629@gmail.com', name: 'Jason Liu', a: 'Yes' },
+          { email: 'gnafniloc@gmail.com', name: 'Colin Fang', a: 'Yes' },
+          { email: 'christopherta32@gmail.com', name: 'Christopher Ta', a: 'Yes' },
+        ],
+        may4: [
+          { email: 'choganhero@gmail.com', name: 'Daniel Ye', a: 'No' },
+          { email: 'brandonk2cho@gmail.com', name: 'Brandon Cho', a: 'Yes' },
+          { email: 'philip.trinh@ntcbc.ca', name: 'Philip Trinh', a: 'Yes' },
+          { email: 'samuelcyeung@gmail.com', name: 'Samuel Yeung', a: 'Yes' },
+          { email: 'fumanchuninja@gmail.com', name: 'Liam Sy', a: 'Yes' },
+          { email: 'clement.shum128@gmail.com', name: 'Clement Shum', a: 'Yes' },
+          { email: 'daniel.ng.94@gmail.com', name: 'Daniel Ng', a: 'Yes' },
+          { email: 'xmlu2114@gmail.com', name: 'Lucas Lu', a: 'Yes' },
+          { email: 'jacoblai1603@gmail.com', name: 'Jacob Lai', a: 'Yes' },
+          { email: 'lamlam725725@gmail.com', name: 'Liam Lam', a: 'Yes' },
+          { email: 'phoebechow63@gmail.com', name: 'Phoebe Chow', a: 'Yes' },
+          { email: 'sharingan246@gmail.com', name: 'Anthony Wan', a: 'Yes' },
+          { email: 'lussiermonique23@gmail.com', name: 'Monique Lussier', a: 'Yes' },
+          { email: 'brianmaytc@gmail.com', name: 'Brian Ma', a: 'Yes' },
+          { email: 'chantomm535@gmail.com', name: 'Clancy Lam', a: 'Yes' },
+          { email: 'maandreasma@gmail.com', name: 'Andreas Ma', a: 'Yes' },
+          { email: 'starfoxxkemuel@gmail.com', name: 'Kemuel Omero', a: 'Yes' },
+          { email: 'timothy.tk.to@gmail.com', name: 'Tim To', a: 'Yes' },
+          { email: 'matcw01@gmail.com', name: 'Matthew Wong', a: 'Yes' },
+          { email: 'advaith.sriram@gmail.com', name: 'Advaith Sriram', a: 'Yes' },
+          { email: 'imvincenovesteras@gmail.com', name: 'Vince Novesteras', a: 'No' },
+        ],
+        may11: [
+          { email: 'tangj2018@gmail.com', name: 'Justin Tang', a: 'Yes' },
+          { email: 'choganhero@gmail.com', name: 'Daniel Ye', a: 'Yes' },
+          { email: 'chrisyien96@gmail.com', name: 'Chris Yien', a: 'Yes' },
+          { email: 'fumanchuninja@gmail.com', name: 'Liam Sy', a: 'No' },
+          { email: 'brandonk2cho@gmail.com', name: 'Brandon Cho', a: 'Yes' },
+          { email: 'johnmtiamzon@gmail.com', name: 'John Tiamzon', a: 'No' },
+          { email: 'tedchaucontact@gmail.com', name: 'Teddie Chau', a: 'Yes' },
+          { email: 't9625943@gmail.com', name: 'Tim L', a: 'No' },
+          { email: 'xmlu2114@gmail.com', name: 'Lucas Lu', a: 'Yes' },
+          { email: 'daniel.ng.94@gmail.com', name: 'Daniel Ng', a: 'Yes' },
+          { email: 'clement.shum128@gmail.com', name: 'Clement Shum', a: 'Yes' },
+          { email: 'sharingan246@gmail.com', name: 'Anthony Wan', a: 'Yes' },
+          { email: 'chantomm535@gmail.com', name: 'Clancy Lam', a: 'Yes' },
+          { email: 'advaith.sriram@gmail.com', name: 'Advaith Sriram', a: 'Yes' },
+          { email: 'philip.trinh@ntcbc.ca', name: 'Philip Trinh', a: 'Yes' },
+          { email: 'lamlam725725@gmail.com', name: 'Liam Lam', a: 'Yes' },
+          { email: 'phoebechow63@gmail.com', name: 'Phoebe Chow', a: 'No' },
+          { email: 'lussiermonique23@gmail.com', name: 'Monique Lussier', a: 'No' },
+          { email: 'matcw01@gmail.com', name: 'Matthew Wong', a: 'Yes' },
+          { email: 'jzwong9@gmail.com', name: 'James Wong', a: 'Yes' },
+          { email: 'amwong99@gmail.com', name: 'Alexander Wong', a: 'Yes' },
+          { email: 'samuelcyeung@gmail.com', name: 'Samuel Yeung', a: 'Yes' },
+          { email: 'rjwong999@gmail.com', name: 'Ryan Wong', a: 'Yes' },
+        ],
+        may18: [
+          { email: 'brandonk2cho@gmail.com', name: 'Brandon Cho', a: 'Yes' },
+          { email: 'philip.trinh@ntcbc.ca', name: 'Philip Trinh', a: 'Yes' },
+          { email: 'chrisyien96@gmail.com', name: 'Chris Yien', a: 'Yes' },
+          { email: 'choganhero@gmail.com', name: 'Daniel Ye', a: 'Yes' },
+          { email: 'xmlu2114@gmail.com', name: 'Lucas Lu', a: 'Yes' },
+          { email: 'phoebechow63@gmail.com', name: 'Phoebe Chow', a: 'Yes' },
+          { email: 'lamlam725725@gmail.com', name: 'Liam Lam', a: 'No' },
+          { email: 'lussiermonique23@gmail.com', name: 'Monique Lussier', a: 'Yes' },
+          { email: 'jay.mmg6@gmail.com', name: 'Janice Li', a: 'Yes' },
+          { email: 'chantomm535@gmail.com', name: 'Clancy Lam', a: 'Yes' },
+          { email: 'matcw01@gmail.com', name: 'Matthew Wong', a: 'No' },
+          { email: 'kahyuen229@gmail.com', name: 'Hugo Yuen', a: 'Yes' },
+          { email: 'starfoxxkemuel@gmail.com', name: 'Kemuel Omero', a: 'Yes' },
+          { email: 'christopherta32@gmail.com', name: 'Christopher Ta', a: 'Yes' },
+        ],
+        may25: [
+          { email: 'xmlu2114@gmail.com', name: 'Lucas Lu', a: 'Yes' },
+          { email: 'choganhero@gmail.com', name: 'Daniel Ye', a: 'Yes' },
+          { email: 'tedchaucontact@gmail.com', name: 'Teddie Chau', a: 'Yes' },
+          { email: 'phoebechow63@gmail.com', name: 'Phoebe Chow', a: 'Yes' },
+          { email: 'jessicaho9229@gmail.com', name: 'Jessica Ho', a: 'Yes' },
+          { email: 'jacoblai1603@gmail.com', name: 'Jacob Lai', a: 'Yes' },
+          { email: 'matcw01@gmail.com', name: 'Matthew Wong', a: 'Yes' },
+          { email: 'jamesma1998@gmail.com', name: 'James Ma', a: 'Yes' },
+          { email: 'rsam.business@gmail.com', name: 'Rico Sam', a: 'Yes' },
+          { email: 'kelvin.chen@ntcbc.ca', name: 'Kelvin Chen', a: 'Yes' },
+          { email: 'fumanchuninja@gmail.com', name: 'Liam Sy', a: 'Yes' },
+          { email: 'daniel.ng.94@gmail.com', name: 'Daniel Ng', a: 'Yes' },
+          { email: 'chantomm535@gmail.com', name: 'Clancy Lam', a: 'Yes' },
+          { email: 'lamlam725725@gmail.com', name: 'Liam Lam', a: 'Yes' },
+          { email: 'lussiermonique23@gmail.com', name: 'Monique Lussier', a: 'Yes' },
+          { email: 'philip.trinh@ntcbc.ca', name: 'Philip Trinh', a: 'Yes' },
+          { email: 'brandonk2cho@gmail.com', name: 'Brandon Cho', a: 'Yes' },
+          { email: 'maandreasma@gmail.com', name: 'Andreas Ma', a: 'Yes' },
+        ],
+      };
+
+      const JUNK = new Set([
+        'test',
+        'fake dye',
+        'josh',
+        'danyo',
+        'daniel.ye@live.com',
+        'danielyiliye@gmail.com',
+        'josh (daniel.ye@live.com)',
+      ]);
+
+      function buildPlayers() {
+        const map = {};
+        SESS_KEYS.forEach((key) => {
+          const seen = new Set();
+          (RAW[key] || []).forEach((r) => {
+            const [cEmail, cName] = canonical(r.email, r.name);
+            if (JUNK.has(r.name.toLowerCase()) || JUNK.has(r.email.toLowerCase())) return;
+            if (seen.has(cEmail)) return;
+            seen.add(cEmail);
+            if (!map[cEmail]) map[cEmail] = { name: cName, email: cEmail, sessions: {} };
+            if (cName.length > map[cEmail].name.length) map[cEmail].name = cName;
+            map[cEmail].sessions[key] = r.a === 'Yes' ? 'yes' : 'no';
+          });
+        });
+        return Object.values(map);
+      }
+
+      const players = buildPlayers();
+      const RECENT = SESS_KEYS.slice(-3);
+      const OLDER = SESS_KEYS.slice(0, SESS_KEYS.length - 3);
+      const NEW_THRESHOLD_IDX = SESS_KEYS.indexOf('may4');
+
+      function classify(p) {
+        const firstSess = SESS_KEYS.find((k) => p.sessions[k]);
+        const firstIdx = SESS_KEYS.indexOf(firstSess);
+        const recentActive = RECENT.some((k) => p.sessions[k]);
+        const olderActive = OLDER.some((k) => p.sessions[k]);
+        const attended = SESS_KEYS.filter((k) => p.sessions[k] === 'yes').length;
+        if (firstIdx >= NEW_THRESHOLD_IDX && !olderActive) return 'new';
+        if (!recentActive && olderActive) return 'faded';
+        if (attended >= 5) return 'active';
+        return 'occasional';
+      }
+
+      const categorized = players.map((p) => ({ ...p, category: classify(p) }));
+
+      document.getElementById('metrics').innerHTML = `
+  <div class="metric"><div class="metric-label">Total players</div><div class="metric-value">${categorized.length}</div></div>
+  <div class="metric"><div class="metric-label">Active regulars</div><div class="metric-value">${categorized.filter((p) => p.category === 'active').length}</div></div>
+  <div class="metric"><div class="metric-label">Newcomers</div><div class="metric-value">${categorized.filter((p) => p.category === 'new').length}</div></div>
+  <div class="metric"><div class="metric-label">Stopped coming</div><div class="metric-value">${categorized.filter((p) => p.category === 'faded').length}</div></div>
+`;
+
+      const attended = SESS_KEYS.map((k) => (RAW[k] || []).filter((r) => r.a === 'Yes').length);
+      const noShows = SESS_KEYS.map((k) => (RAW[k] || []).filter((r) => r.a !== 'Yes').length);
+
+      new Chart(document.getElementById('attendChart'), {
+        type: 'bar',
+        data: {
+          labels: SESSIONS.map((s) => s.date),
+          datasets: [
+            {
+              label: 'Attended',
+              data: attended,
+              backgroundColor: '#2b7fd4',
+              borderRadius: 4,
+              stack: 's',
+            },
+            {
+              label: "Didn't attend",
+              data: noShows,
+              backgroundColor: '#b8d7f5',
+              borderRadius: 4,
+              stack: 's',
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              stacked: true,
+              ticks: { stepSize: 5 },
+              grid: { color: 'rgba(15,23,42,0.06)' },
+            },
+            x: {
+              stacked: true,
+              grid: { display: false },
+              ticks: { font: { size: 11 } },
+            },
+          },
+        },
+      });
+
+      let currentTab = 'all';
+      function setTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab').forEach((t) => {
+          const labels = { all: 'all players', active: 'active', new: 'newcomers', faded: 'stopped' };
+          t.classList.toggle(
+            'active',
+            t.textContent.toLowerCase().includes(labels[tab]),
+          );
+        });
+        render();
+      }
+
+      function render() {
+        const q = document.getElementById('search').value.toLowerCase();
+        let subset = categorized;
+        if (currentTab !== 'all') subset = subset.filter((p) => p.category === currentTab);
+        if (q) subset = subset.filter((p) => p.name.toLowerCase().includes(q));
+        subset = [...subset].sort((a, b) => a.name.localeCompare(b.name));
+
+        const badgeMap = {
+          new: ['badge-new', 'Newcomer'],
+          faded: ['badge-faded', 'Stopped coming'],
+          active: ['badge-active', 'Regular'],
+          occasional: ['badge-occasional', 'Occasional'],
+        };
+
+        document.getElementById('grid').innerHTML = subset
+          .map((p) => {
+            const [cls, label] = badgeMap[p.category];
+            const dots = SESS_KEYS.map((k, i) => {
+              const v = p.sessions[k];
+              const cls2 = v === 'yes' ? 'dot-yes' : v === 'no' ? 'dot-no' : 'dot-absent';
+              return `<div class="dot ${cls2}" title="${
+                SESSIONS[i].date
+              }: ${
+                v === 'yes'
+                  ? 'attended'
+                  : v === 'no'
+                    ? "signed up, didn't come"
+                    : 'not signed up'
+              }"></div>`;
+            }).join('');
+            const att = SESS_KEYS.filter((k) => p.sessions[k] === 'yes').length;
+            const sig = SESS_KEYS.filter((k) => p.sessions[k]).length;
+            return `<div class="player-card">
+      <div class="player-body">
+        <div class="player-name">${p.name}</div>
+        <div class="player-meta">${att} attended · ${sig} signed up · ${SESS_KEYS.length} sessions</div>
+      </div>
+      <div class="player-side">
+        <div class="badge ${cls}">${label}</div>
+        <div class="dot-row">${dots}</div>
+      </div>
+    </div>`;
+          })
+          .join('');
+      }
+
+      render();
+    </script>
+  </body>
+</html>
